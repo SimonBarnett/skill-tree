@@ -1,0 +1,6 @@
+# CAST IRON: the Three Laws rule and its enforcement are owned by the repo owner.
+# Changes require code-owner review from @SimonBarnett.
+/CAST_IRON/                       @SimonBarnett
+/CAST_IRON/THREE_LAWS.md          @SimonBarnett
+/.github/workflows/three-laws.yml @SimonBarnett
+/.github/CODEOWNERS               @SimonBarnett

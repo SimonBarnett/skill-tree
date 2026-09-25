@@ -1,0 +1,82 @@
+# CAST IRON gate for the Three Laws of Robotics.
+# Owned by @SimonBarnett (see .github/CODEOWNERS). Do not weaken or remove.
+# Changing CAST_IRON/THREE_LAWS.md requires the owner to deliberately update
+# THREE_LAWS_SHA256 below in the same change.
+name: three-laws
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RULE_FILE: CAST_IRON/THREE_LAWS.md
+  THREE_LAWS_SHA256: 6222e7a72b52081e95465154a1592c47d06ce9d24e6717a58eb0d87665cc6ddf
+  REF_LINE: "> CAST IRON: This skill is bound by [the Three Laws](../../../CAST_IRON/THREE_LAWS.md) and is void where it conflicts with them."
+
+jobs:
+  three-laws:
+    name: three-laws
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Rule file is intact (pinned SHA-256)
+        run: |
+          test -f "$RULE_FILE" || { echo "::error::$RULE_FILE is missing"; exit 1; }
+          actual=$(sha256sum "$RULE_FILE" | cut -d' ' -f1)
+          if [ "$actual" != "$THREE_LAWS_SHA256" ]; then
+            echo "::error file=$RULE_FILE::CAST IRON rule changed. sha256=$actual, pinned=$THREE_LAWS_SHA256"
+            exit 1
+          fi
+          echo "OK: $RULE_FILE sha256 matches pin"
+
+      - name: Every SKILL.md is three-law bound
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, sys
+          ref = os.environ["REF_LINE"]
+          need = ("three_laws: bound", "three_laws_checklist: passed")
+          skills = sorted(p for p in pathlib.Path(".").rglob("SKILL.md") if ".git" not in p.parts)
+          bad = 0
+          for p in skills:
+              lines = p.read_text(encoding="utf-8").splitlines()
+              fm = []
+              if lines and lines[0].strip() == "---":
+                  for l in lines[1:]:
+                      if l.strip() == "---":
+                          break
+                      fm.append(l.strip())
+              else:
+                  print(f"::error file={p}::no YAML frontmatter"); bad += 1
+              for f in need:
+                  if f not in fm:
+                      print(f"::error file={p}::frontmatter missing '{f}'"); bad += 1
+              if ref not in (l.rstrip() for l in lines):
+                  print(f"::error file={p}::missing CAST IRON Three Laws reference line"); bad += 1
+          print(f"checked {len(skills)} SKILL.md file(s), {bad} problem(s)")
+          sys.exit(1 if bad else 0)
+          PY
+
+      - name: New skills in this PR affirm the checklist
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          added=$(git diff --name-only --diff-filter=AR "$BASE_SHA" HEAD | grep -E '(^|/)SKILL\.md$' || true)
+          if [ -z "$added" ]; then echo "No skills added in this PR"; exit 0; fi
+          rc=0
+          for f in $added; do
+            fm=$(awk 'NR==1&&$0!="---"{exit} NR>1&&$0=="---"{exit} NR>1{print}' "$f")
+            echo "$fm" | grep -qx 'three_laws: bound' || { echo "::error file=$f::new skill not three-law bound"; rc=1; }
+            echo "$fm" | grep -qx 'three_laws_checklist: passed' || { echo "::error file=$f::new skill has not affirmed the three-law checklist"; rc=1; }
+            grep -qxF "$REF_LINE" "$f" || { echo "::error file=$f::new skill missing CAST IRON reference line"; rc=1; }
+            [ $rc -eq 0 ] && echo "OK: $f minted as three-law safe"
+          done
+          exit $rc
