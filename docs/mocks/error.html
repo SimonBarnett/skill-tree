@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>skill-tree — resolve error</title>
+  <style>
+    body { font-family: sans-serif; max-width: 42rem; margin: 2rem auto; color: #111; }
+    h1 { font-size: 1.25rem; }
+    .err { color: #800; }
+    code { background: #f4f4f4; padding: 0.1rem 0.3rem; }
+    pre { background: #f8f0f0; padding: 0.75rem; border: 1px solid #c88; }
+  </style>
+</head>
+<body>
+  <h1>skill-tree MCP — error</h1>
+  <p class="err">Resolve failed. Do not inject a partial skill set.</p>
+  <pre>error: cycle detected: a -> b -> a
+# or
+error: missing requires: agentic-irc (not in catalog)</pre>
+  <p>Fix the DAG or role preset, then call <code>resolve_role</code> again.</p>
+</body>
+</html>
