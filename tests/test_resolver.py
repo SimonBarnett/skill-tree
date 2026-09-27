@@ -33,16 +33,17 @@ def test_s2_unique_closure(catalog_diamond):
     }
 
 
-# S3: single-source fan-out - edit one leaf, both parents see it.
+# S3: single-source fan-out - edit one leaf, both parents' resolve closures see it.
 def test_s3_single_source_fanout(catalog_diamond, tmp_path):
     root, catalog = catalog_diamond
     leaf = root / "git-base" / "SKILL.md"
     leaf.write_text(leaf.read_text(encoding="utf-8") + "NEW LINE\n", encoding="utf-8")
     catalog = load_catalog(root)
-    parents = resolve(catalog, ["git-pr-workflow", "bob-mrb-worker"])
-    bodies = {s.id: s.body for s in parents}
-    assert "NEW LINE" in bodies["git-pr-workflow"]
-    assert "NEW LINE" in bodies["bob-mrb-worker"]
+    for root_id in ("git-pr-workflow", "bob-mrb-worker"):
+        ordered = resolve(catalog, [root_id])
+        by_id = {s.id: s for s in ordered}
+        assert "git-base" in by_id
+        assert "NEW LINE" in by_id["git-base"].body
 
 
 # S4: role filter - manager-git includes git/MRB/UAT, excludes IRC.
@@ -78,6 +79,24 @@ def test_s7_missing_root_fails(catalog_diamond):
 
 # Duplicate ids across the catalog are a hard error at load time.
 def test_duplicate_id_fails(catalog_duplicate):
-    root, _ = catalog_duplicate
+    root, catalog = catalog_duplicate
+    assert catalog is None  # fixture must not pre-load (would ERROR at setup)
     with pytest.raises(ValueError, match="duplicate skill id"):
         load_catalog(root)
+
+
+def test_empty_requires_then_tags_list():
+    """Empty ``requires:`` must not break following ``tags:`` list items."""
+    from skill_tree.schema import parse_frontmatter
+
+    fm = parse_frontmatter(
+        "---\n"
+        "id: agentic-irc\n"
+        "requires:\n"
+        "tags:\n"
+        "  - irc\n"
+        "---\n"
+        "# body\n"
+    )
+    assert fm.get("requires") in ("", None, [])
+    assert fm.get("tags") == ["irc"]

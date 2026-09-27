@@ -18,7 +18,12 @@ def _parse_scalar(value: str) -> str:
 
 
 def parse_frontmatter(text: str) -> dict[str, object]:
-    """Parse a minimal YAML-ish frontmatter block into a dict."""
+    """Parse a minimal YAML-ish frontmatter block into a dict.
+
+    Empty ``key:`` lines (common for ``requires:`` / ``tags:`` with zero
+    items) must not block a following list — they stay unset until the first
+    ``- item`` promotes the value to a list (MRB #5 / CI AssertionError).
+    """
     m = FRONTMATTER_RE.match(text)
     if not m:
         return {}
@@ -29,24 +34,35 @@ def parse_frontmatter(text: str) -> dict[str, object]:
         if not line.strip():
             continue
         if line.lstrip().startswith("- ") and current_key is not None:
-            data.setdefault(current_key, [])
-            assert isinstance(data[current_key], list)
-            data[current_key].append(_parse_scalar(line.lstrip()[2:]))
+            existing = data.get(current_key)
+            if not isinstance(existing, list):
+                # Promote empty/missing scalar from ``key:`` into a list.
+                data[current_key] = [] if existing in (None, "") else [existing]
+            data[current_key].append(_parse_scalar(line.lstrip()[2:]))  # type: ignore[union-attr]
             continue
         km = KEY_RE.match(line)
         if km:
             current_key = km.group(1)
-            data[current_key] = _parse_scalar(km.group(2))
+            raw_val = km.group(2)
+            if raw_val.strip() == "":
+                # Defer: next lines may be a sequence, or the key stays empty.
+                data[current_key] = None
+            else:
+                data[current_key] = _parse_scalar(raw_val)
         else:
             current_key = None
+    # Normalize leftover None (empty ``key:`` with no items) to "" for scalars.
+    for k, v in list(data.items()):
+        if v is None:
+            data[k] = ""
     return data
 
 
 def _as_list(value: object) -> list[str]:
-    if value is None:
+    if value is None or value == "":
         return []
     if isinstance(value, list):
-        return [str(v) for v in value]
+        return [str(v) for v in value if str(v)]
     return [str(value)]
 
 

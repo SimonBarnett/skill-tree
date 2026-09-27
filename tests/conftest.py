@@ -24,7 +24,12 @@ SKILL_BODIES = {
         "# manager-git\n"
         "composite: git-pr-workflow + bob-mrb-worker + design-uat\n"
     ),
-    "agentic-irc": "# agentic-irc\nIRC skills - must NOT appear in manager-git resolve\n",
+    # Large body so excluding IRC from manager-git keeps S1 ≤ 40% of load-all.
+    "agentic-irc": (
+        "# agentic-irc\n"
+        "IRC skills - must NOT appear in manager-git resolve\n"
+        + ("irc-playbook-line\n" * 80)
+    ),
 }
 
 REQUIRES = {
@@ -155,12 +160,16 @@ CATALOGS = {
 }
 
 
-def _make_fixture(kind: str):
+def _make_fixture(kind: str, *, load: bool = True):
     @pytest.fixture
     def _fixture(tmp_path: Path):
         root = tmp_path / kind
         root.mkdir()
         _build(root, kind)
+        # Duplicate-id catalogs hard-fail at load_catalog — return root only
+        # so the test can assert the ValueError (MRB #5 CI ERROR at setup).
+        if not load:
+            return root, None
         return root, load_catalog(root)
 
     _fixture.__name__ = f"catalog_{kind}"
@@ -170,4 +179,4 @@ def _make_fixture(kind: str):
 catalog_diamond = _make_fixture("diamond")
 catalog_cycle = _make_fixture("cycle")
 catalog_missing = _make_fixture("missing")
-catalog_duplicate = _make_fixture("duplicate")
+catalog_duplicate = _make_fixture("duplicate", load=False)
