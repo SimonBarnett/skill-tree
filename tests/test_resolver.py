@@ -41,8 +41,10 @@ def test_s3_single_source_fanout(catalog_diamond, tmp_path):
     catalog = load_catalog(root)
     parents = resolve(catalog, ["git-pr-workflow", "bob-mrb-worker"])
     bodies = {s.id: s.body for s in parents}
-    assert "NEW LINE" in bodies["git-pr-workflow"]
-    assert "NEW LINE" in bodies["bob-mrb-worker"]
+    # S3: both parents' closures include the edited leaf body.
+    assert "git-base" in bodies
+    assert "NEW LINE" in bodies["git-base"]
+    assert {"git-pr-workflow", "bob-mrb-worker"} <= set(bodies)
 
 
 # S4: role filter - manager-git includes git/MRB/UAT, excludes IRC.
