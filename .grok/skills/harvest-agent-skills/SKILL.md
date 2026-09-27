@@ -7,14 +7,40 @@ description: >
   learned a procedure, hourly skill check, /harvest-agent-skills. Prefer
   deterministic scripts over LLM reasoning. Does not dispatch product builds.
 github: https://github.com/SimonBarnett/skill-tree
+three_laws: bound
+three_laws_checklist: passed
 ---
 
 # Harvest agent skills (honesty box)
 
+> CAST IRON: This skill is bound by [the Three Laws](../../../CAST_IRON/THREE_LAWS.md) and is void where it conflicts with them.
+
+## Three-law mint gate (CAST IRON - runs before every mint)
+
+**No skill may be minted (created, changed or harvested into any skill
+book) unless it is three-law safe.** This outranks every other rule in this
+skill, including AUTOMATIC harvest below.
+
+Before you mint or harvest ANY skill, by ANY route (branch + PR, `harvest:`
+/ `FR:` issue, or any no-GitHub intake such as a webhook POST):
+
+1. Confirm the candidate `SKILL.md` has frontmatter `three_laws: bound` and
+   `three_laws_checklist: passed`, and contains the CAST IRON reference line
+   above verbatim.
+2. Run the three-law safety checklist in
+   [`CAST_IRON/THREE_LAWS.md`](../../../CAST_IRON/THREE_LAWS.md) against the
+   skill. Every item must pass.
+3. If any item fails, or the reference line or a field is missing:
+   **refuse to mint.** Do not open the PR, issue or intake POST. Report to the
+   user which item failed and why.
+4. Never edit, weaken or work around `CAST_IRON/THREE_LAWS.md` or its CI gate
+   as part of a harvest.
+
 ## AUTOMATIC harvest (CAST IRON - no waiting)
 
 **You MUST ALWAYS harvest new or changed skills to the relevant home
-repo AUTOMATICALLY in the same turn you learn or fix them.**
+repo AUTOMATICALLY in the same turn you learn or fix them** - once they pass
+the three-law mint gate above.
 
 Do not ask permission. Do not defer to "later", hourly checks, or Bob.
 Do not leave a playbook only in chat, `~/.grok/skills`, or a temp dir.
@@ -62,6 +88,8 @@ session is a breach of the bargain.
 
 ### How to report (strict order - no main pushes)
 
+0. **Three-law mint gate first** (section above). A skill that fails it is
+   reported to the user as refused, not harvested.
 1. **Skill harvest / playbook / fix with write access** -> branch + **pull
    request** against the home repo **in this turn**. Never `git push origin main`
    for harvest.
@@ -94,19 +122,25 @@ exists, run it; do not re-derive the procedure in chat.
 3. Check recent `docs/*` FRs and `docs/skill-harvest-log.md` (create if missing).
 4. Skip one-off incident notes and noisy chat.
 
-A candidate is useful only if it is **repeatable**, has a clear trigger, and
-is not a single incident report.
+A candidate is useful only if it is **repeatable**, has a clear trigger, is
+not a single incident report, and passes the three-law mint gate.
 
 ## Write
 
-1. Edit or add `.grok/skills/<name>/SKILL.md` (`name` + `description`;
-   foundation skill also has `github:` of THIS repo).
-2. Append a dated line to `docs/skill-harvest-log.md`.
-3. Commit on a **branch**, open a **PR**. Link related issues.
-4. If this repo has a Test-Pack / skill list gate, add the new name and run it.
+1. Edit or add `.grok/skills/<name>/SKILL.md` (`name` + `description` +
+   `three_laws: bound` + `three_laws_checklist: passed` + the CAST IRON
+   reference line; foundation skill also has `github:` of THIS repo).
+2. Run the three-law checklist; refuse and report if it fails.
+3. Append a dated line to `docs/skill-harvest-log.md`.
+4. Commit on a **branch**, open a **PR**. Link related issues.
+5. If this repo has a Test-Pack / skill list gate, add the new name and run it.
+   The `three-laws` CI check must pass.
 
 ## Do not
 
+- Mint or harvest a skill that fails the three-law checklist or lacks the
+  CAST IRON reference line / frontmatter fields.
+- Edit, weaken or bypass `CAST_IRON/THREE_LAWS.md` or `.github/workflows/three-laws.yml`.
 - Push harvest to `main`.
 - Commit "nothing found".
 - Force-push, secrets, or live credentials into skills.
@@ -115,7 +149,8 @@ is not a single incident report.
 - Start unrelated product jobs under the harvest label.
 - Spend tokens reasoning through a path a script already encodes.
 - **End the turn** with a new/fixed skill only in chat, temp, or `~/.grok`
-  without a home-repo PR or `harvest:` issue.
+  without a home-repo PR or `harvest:` issue (unless refused by the mint gate,
+  which you report instead).
 - Ask the human whether to harvest when the honesty box already fires.
 
 ## Inclusion rule
@@ -123,3 +158,8 @@ is not a single incident report.
 **Every skill book MUST include this foundation skill** (twin with that book's
 `github:`). Other skills in the book SHOULD link it in one line:
 `Foundation: harvest-agent-skills (honesty box) -> report back to <github>.`
+
+**Every skill in every book MUST carry** `three_laws: bound`,
+`three_laws_checklist: passed` and the CAST IRON reference line, pointing at
+that book's copy of, or a link to, `CAST_IRON/THREE_LAWS.md` in
+`SimonBarnett/skill-tree`.
