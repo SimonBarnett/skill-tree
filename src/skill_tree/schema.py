@@ -29,14 +29,21 @@ def parse_frontmatter(text: str) -> dict[str, object]:
         if not line.strip():
             continue
         if line.lstrip().startswith("- ") and current_key is not None:
-            data.setdefault(current_key, [])
-            assert isinstance(data[current_key], list)
+            # Empty `key:` then `- item` is valid YAML-ish; coerce ''/None to list.
+            cur = data.get(current_key)
+            if not isinstance(cur, list):
+                data[current_key] = [] if cur in (None, "") else [cur]
             data[current_key].append(_parse_scalar(line.lstrip()[2:]))
             continue
         km = KEY_RE.match(line)
         if km:
             current_key = km.group(1)
-            data[current_key] = _parse_scalar(km.group(2))
+            raw_val = km.group(2)
+            # Bare `requires:` / `tags:` means an upcoming list (or empty list).
+            if raw_val.strip() == "":
+                data[current_key] = []
+            else:
+                data[current_key] = _parse_scalar(raw_val)
         else:
             current_key = None
     return data

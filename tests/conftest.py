@@ -24,7 +24,11 @@ SKILL_BODIES = {
         "# manager-git\n"
         "composite: git-pr-workflow + bob-mrb-worker + design-uat\n"
     ),
-    "agentic-irc": "# agentic-irc\nIRC skills - must NOT appear in manager-git resolve\n",
+    # Large body so excluding IRC from manager-git meets S1 ≤40% budget.
+    "agentic-irc": (
+        "# agentic-irc\nIRC skills - must NOT appear in manager-git resolve\n"
+        + ("IRC playbook line\n" * 80)
+    ),
 }
 
 REQUIRES = {
@@ -161,6 +165,9 @@ def _make_fixture(kind: str):
         root = tmp_path / kind
         root.mkdir()
         _build(root, kind)
+        # duplicate catalog must not load in fixture setup — the test asserts load fails.
+        if kind == "duplicate":
+            return root, None
         return root, load_catalog(root)
 
     _fixture.__name__ = f"catalog_{kind}"
